@@ -1,0 +1,30 @@
+alias functionNum R1;
+alias currentPID R2;
+alias word R3;
+
+//---------------------------------------------TERMINAL WRITE-------------------------------------------
+
+if(functionNum == 3) then
+	backup;			// PUSH THE USED REGISTERS
+
+	R1 = 8;			// CALL ACQUIRE TERMINAL
+	R2 = currentPID;	
+	call MOD_0;
+	
+	restore;
+
+	print word;		// TERMINAL HAS BEEN ACQUIRED
+
+	backup;
+
+	R1 = 9;			// CALL RELEASE TERMINAL
+	R2 = currentPID;
+	call MOD_0;
+
+	restore;	
+	
+	return;
+endif;
+
+//--------------------------------------------END OF TERMINAL WRITE--------------------------------------
+

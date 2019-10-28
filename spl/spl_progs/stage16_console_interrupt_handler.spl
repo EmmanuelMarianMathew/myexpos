@@ -1,0 +1,27 @@
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13] = SP;
+
+//switch to kernel stack of currently running process
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 11]*512-1;
+
+backup;	//taking backup of currently running process
+
+alias currPID R0;
+currPID = [TERMINAL_STATUS_TABLE + 1];
+
+[PROCESS_TABLE + currPID*16 + 8] = P0;
+
+backup;
+
+//now release the terminal as the input has been read by calling resource manager module
+
+R1 = 9;		// function number
+R2 = currPID;
+
+call MOD_0;
+restore;
+
+
+restore;
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 13];
+
+ireturn;

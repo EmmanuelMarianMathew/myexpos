@@ -1,0 +1,15 @@
+alias counter R0;
+counter = 0;
+while(counter <= 20) do
+if(counter <= 10) then
+if(counter%2 == 0) then
+print counter;
+endif;
+endif;
+if(counter > 10) then
+if(counter%2 != 0) then
+print counter;
+endif;
+endif;
+counter = counter+1;
+endwhile;

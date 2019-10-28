@@ -1,0 +1,29 @@
+decl
+	int gcd(int num1, int num2);
+enddecl
+
+int gcd(int num1, int num2) {
+	begin	
+		while(num1 != num2) do
+			if(num1 > num2) then
+				num1 = num1 - num2;
+			else
+				num2 = num2 - num1;
+			endif;
+		endwhile;
+		return num1;
+	end
+}
+int main() {
+        decl
+                int temp1, hcf, temp2, num1, num2, temp3;
+        enddecl
+        begin
+ 		temp1 = exposcall("Read", -1, num1);
+		temp2 = exposcall("Read", -1, num2);
+		hcf = gcd(num1, num2);
+		temp3 = exposcall("Write", -2, hcf);
+                return 0;
+        end
+}
+

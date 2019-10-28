@@ -1,0 +1,27 @@
+int main() {
+	decl
+		int temp, ret;
+		str string;
+	enddecl
+	
+	begin
+		temp = exposcall("Fork");
+		if(temp == -1) then
+			string = "fork unsuccessful";
+			temp = exposcall("Write", -2, string);
+		else 
+			if(temp == 0) then
+				ret = exposcall("Exec", "od.xsm");
+				
+			else
+				ret = exposcall("Exec", "s14_e.xsm");
+		endif;
+
+		if(ret == -1) then
+			string = "Filemissing";
+			ret = exposcall("Write", -2, string);
+		endif;
+	endif;
+	return 0;
+	end
+}

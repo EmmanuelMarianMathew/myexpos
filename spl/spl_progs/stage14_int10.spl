@@ -1,0 +1,29 @@
+alias currPID R0;
+alias curr_process_table R1;
+alias counter R2;
+
+
+currPID = [SYSTEM_STATUS_TABLE + 1];
+curr_process_table = PROCESS_TABLE + currPID*16;
+[curr_process_table + 9] = 10;                         // MODE FLAG
+[curr_process_table + 13] = SP;			       // SAVE THE VALUE OF TOP OF USER STACK	
+[curr_process_table + 4] = TERMINATED;                //  STATE
+SP = [curr_process_table + 11]*512;                   // SP POINTS TO TOP OF KERNEL STACK
+
+
+counter = 1;
+while(counter < 16) do
+	if([PROCESS_TABLE + counter*16 + 4] != TERMINATED) then
+		break;
+	endif;
+	counter = counter + 1;
+endwhile;
+
+
+if(counter == 16) then
+	halt;			// ALL THE USER PROCESSES ARE TERMINATED
+else
+	call MOD_5;            // CALL THE SCHEDULER
+endif;
+
+

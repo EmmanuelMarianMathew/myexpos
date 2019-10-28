@@ -1,0 +1,21 @@
+int main() {
+decl
+        int temp;
+        str message;
+enddecl
+
+begin
+        message = "Enter name";
+        temp = exposcall("Write", -2, message);
+        temp = exposcall("Read", -1, message);
+        temp = exposcall("Exec", message);
+
+        if(temp == -1) then
+                message = "unsuccessful";
+                temp = exposcall("Write", -2, message);
+        endif;
+
+        return 0;
+end
+}
+
