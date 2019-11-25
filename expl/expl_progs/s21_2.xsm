@@ -86,7 +86,7 @@ NE R0,R1
 JZ R0,2248
 MOV R0,"Exec"
 PUSH R0
-MOV R0,"pid.xsm"
+MOV R0,"gpid.xsm"
 PUSH R0
 PUSH R0
 PUSH R0

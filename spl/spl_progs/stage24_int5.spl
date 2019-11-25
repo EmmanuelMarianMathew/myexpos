@@ -1,0 +1,135 @@
+alias process_table R4;
+alias userSP R5;
+
+breakpoint;
+process_table = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16;
+[process_table + 13] = SP;
+userSP = SP;
+
+SP = [process_table + 11] * 512 - 1;	//change to kernel stack
+
+//get the sys call number from user stack
+alias syscall R6;
+syscall = [[PTBR + 2 * ((userSP - 5) / 512)] * 512 + (userSP - 5) % 512];
+
+alias retAddr R7;
+retAddr = [PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512;
+
+//-------------------------------------OPEN SYSTEM CALL--------------------------------------------------
+
+// returns file descriptor
+// returns -1 if FILE NOT FOUND OR FILE IS NOT DATA OR ROOT FILE
+// returns -2 if SYSTEM HAS REACHED ITS LIMIT OF OPEN FILES
+// returns -3 if PROCESS HAS REACHED ITS LIMIT OF RESOURCES
+
+if(syscall == 2) then
+	[process_table+9] = 2;
+	alias filename R8;
+	filename = [[PTBR + 2 * ((userSP - 4) / 512)] * 512 + (userSP - 4) % 512];
+	
+	alias user_page R9;
+	user_page = [process_table+11];
+
+	alias free_entry R10;
+	free_entry = -1;
+
+	alias i R11;
+	i = 496;
+
+	// find free entry in per process resource table
+	while(i < 512) do
+			if([user_page*512+i] == -1) then
+				free_entry = (i-496)/2;
+				break;
+			endif;
+		i = i+2;
+	endwhile;
+
+	// if no free entries found
+	if(free_entry == -1) then	// process has reached its limit of resources
+		[retAddr] = -3;
+		SP = [process_table+13];
+		[process_table+9] = 0;
+		ireturn;
+	endif;
+	
+	// OPEN FUNCTION
+	backup;
+	R1 = OPEN;
+	R2 = filename;
+	call MOD_3;
+	restore;
+
+	alias file_table_index R11;
+	file_table_index = R0;
+
+	if(file_table_index == -1) then		// FILE TYPE IS EXEC
+		[retAddr] = -1;
+		SP = [process_table+13];
+		[process_table+9] = 0;
+		ireturn;
+	endif;
+
+	if(file_table_index == -2) then		// reached maximum number of open files in system
+		[retAddr] = -2;
+		SP = [process_table + 13];
+		[process_table + 9] = 0;
+		ireturn;
+	endif;
+
+	// FILE IS READY TO OPEN :)
+	
+	[user_page*512 + 496 + 2*free_entry] = FILE;
+	[user_page*512 + 496 + 2*free_entry+1] = file_table_index;
+
+	[retAddr] = free_entry;
+	SP = [process_table+13];
+	[process_table+9] = 0;
+	ireturn;
+endif;
+
+//------------------------------------------END OF OPEN--------------------------------------------------
+
+
+//-------------------------------------------CLOSE-------------------------------------------------------
+
+// ARGUMENT IS FILE DESCRIPTOR
+// RETURNS 0 IF SUCCESS
+// RETURNS -1 IF FILE DESCRIPTOR IS INVALID
+
+
+if(syscall == 3) then
+	[process_table + 9] = 3;
+
+	alias file_entry R8;
+	file_entry = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+
+	alias user_page R9;
+	user_page = [process_table + 11];
+
+	if(file_entry < 0 || file_entry > 7 || [user_page*512 + 496 + 2*file_entry] != FILE || [user_page*512 + 496 + 2*file_entry] == -1) then
+		[retAddr] = -1;
+		SP = [process_table+13];
+		[process_table+9] = 0;
+		ireturn;
+	endif;
+
+	alias file_table_entry R10;
+	file_table_entry = [user_page*512 + 496 + 2*file_entry + 1];
+
+	backup;
+	R1 = CLOSE;
+	R2 = file_table_entry;
+	call MOD_3;
+	restore;
+
+	[user_page*512 + 496 + 2*file_entry] = -1;
+	[user_page*512 + 496 + 2*file_entry + 1] = -1;
+
+	[retAddr] = 0;
+	SP = [process_table+13];
+	[process_table+9] = 0;
+	ireturn;
+endif;
+
+//---------------------------------------END OF CLOSE----------------------------------------------------

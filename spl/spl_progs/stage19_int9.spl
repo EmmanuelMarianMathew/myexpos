@@ -2,7 +2,7 @@
 
 // ONLY NAME OF FILE IS PASSED AS ARGUMENT
 
-breakpoint;
+//breakpoint;
 //SAVE THE USER STACK
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13] = SP;
 
@@ -40,6 +40,7 @@ i = i+1;
 endwhile;
 
 if(flag == 1) then		// NOT FOUND
+	[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+9]=0;
 	[[PTBR + 2*(userSP - 1)/512]*512 + (userSP - 1)%512] = -1;
 	SP = userSP;
 	ireturn;	
@@ -93,16 +94,18 @@ backup;
 [PTBR+7] = "0000";
 
 //STACK
+backup;
 R1 = GET_FREE_PAGE;
 call  MOD_2;
 [PTBR+16] = R0;
 [PTBR+17] = "0110";
+restore;
 
+backup;
 R1 = GET_FREE_PAGE;
 call  MOD_2;
 [PTBR+18] = R0;
 [PTBR+19] = "0110";
-
 restore;
 
 breakpoint;
@@ -115,29 +118,18 @@ if([INODE_TABLE+index*16+8]!=-1) then
 	R1 = GET_CODE_PAGE;
 	R2 = [INODE_TABLE + index*16 + 8];
 	call MOD_2;
-	[PTBR+8] = R0;
-	[PTBR+9] = "0100";
+	[PAGE_TABLE_BASE + ([SYSTEM_STATUS_TABLE + 1] * 20) + 8] = R0;
+	[PAGE_TABLE_BASE + ([SYSTEM_STATUS_TABLE + 1] * 20) + 9] = "0100";
 	restore;
-
-//	backup;
-//	alias temp R5;
-//	R1 = DISK_LOAD;
-//	R2 = pid;
-//	temp = R3;
-//	R3 = [PTBR+8];
-//	R4 = [INODE_TABLE + temp*16 + 8];	// BLOCK NUM
-//	call MOD_4;
-//	restore; 
 endif;
 
-	[PTBR+10] = -1;
-	[PTBR+11] = "0000";
-
-	[PTBR+12] = -1;
-	[PTBR+13] = "0000";
-
-	[PTBR+14] = -1;
-	[PTBR+15] = "0000";
+	//invalidate rest of code pages
+[PAGE_TABLE_BASE + ([SYSTEM_STATUS_TABLE + 1] * 20) + 10] = -1;
+[PAGE_TABLE_BASE + ([SYSTEM_STATUS_TABLE + 1] * 20) + 11] = "0000";
+[PAGE_TABLE_BASE + ([SYSTEM_STATUS_TABLE + 1] * 20) + 12] = -1;
+[PAGE_TABLE_BASE + ([SYSTEM_STATUS_TABLE + 1] * 20) + 13] = "0000";
+[PAGE_TABLE_BASE + ([SYSTEM_STATUS_TABLE + 1] * 20) + 14] = -1;
+[PAGE_TABLE_BASE + ([SYSTEM_STATUS_TABLE + 1] * 20) + 15] = "0000";
 
 alias i R2;
 i = 496;
@@ -167,8 +159,7 @@ endwhile;
 //change the SP to user stack
 SP = 8*512;
 
-//change mode
-alias pid R2;
-[PROCESS_TABLE+pid*16+9] = 0;
+PTBR = PAGE_TABLE_BASE + (20 * [SYSTEM_STATUS_TABLE + 1]);
+[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9] = 0;
 
 ireturn;

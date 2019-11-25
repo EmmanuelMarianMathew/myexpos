@@ -10,7 +10,7 @@ int main() {
 				if(ret != -1) then
 					ret = exposcall("Fork");
 						if(ret != -1) then
-							ret = exposcall("Exec", "pid.xsm");
+							ret = exposcall("Exec", "gpid.xsm");
 						else
 							ret = exposcall("Write", -2, "Error3");
 						endif;

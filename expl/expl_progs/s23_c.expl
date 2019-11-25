@@ -1,0 +1,23 @@
+int main()
+{
+	decl
+		int i, temp;
+		str s;
+	enddecl
+
+	begin
+		s = "newfile.dat";
+		temp = exposcall("Create", s, 1);
+		write(temp);
+		s = "newfile2.dat";
+		temp = exposcall("Create", s, 1);
+		write(temp);
+		temp = exposcall("Delete", "sample.dat");
+		if(temp == 0) then
+			temp = exposcall("Write", -2, "Deleted");
+		endif;
+		temp = exposcall("Shutdown");
+		return 0;
+	end
+}
+	

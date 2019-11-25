@@ -1,0 +1,146 @@
+//------------------------------------------READ SYSTEM CALL---------------------------------------------
+
+// Arguments: File Descriptor(Integer) and a Buffer (a String/Integer variable) into which a word is to be read from the file
+
+// RETURNS 0 IF SUCCESS
+// RETURNS -1 IF FILE DESCRIPTOR IS invalid
+// RETURNS -2 IF FILE POINTER HAS REACHED AT THEN END
+
+alias curr_pid R0;
+alias userSP R1;
+alias process_table R2;
+alias fileDesc R3;
+alias retAddr R4;
+alias readAddr R5;
+alias resource_table R6;
+alias open_file_entry R7;
+alias inode_index R8;
+alias lseek R9;
+
+userSP = SP;
+curr_pid = [SYSTEM_STATUS_TABLE+1];
+resource_table = [process_table+11]*512 + 496;
+process_table = PROCESS_TABLE + curr_pid*16;
+fileDesc = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+retAddr = [PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512;
+readAddr = [[PTBR + 2*((userSP-3)/512)]*512 + (userSP-3)%512];
+[process_table+9] = 7;
+[process_table+13] = SP;
+SP = [process_table+11]*512 - 1;
+
+// READ FROM TERMINAL
+if(fileDesc == -1) then
+	backup;
+	R1 = 4;
+	R2 = curr_pid;
+	R3 = readAddr;
+	call MOD_4;
+	restore;
+
+else
+	// IF FILE DESCRIPTOR IS INVALID
+	if(fileDesc < 0 || fileDesc > 7) then
+		SP = userSP;
+		[retAddr] = -1;
+		[process_table+9] = 0;
+		ireturn;
+	endif;
+
+	// IF THE RESOURCE IDENTIFIER FIELD OF THE RESOURCE TABLE IS INVALID
+	if([resource_table + 2*fileDesc] != FILE) then
+		[retAddr] = -1;
+		[process_table+9] = 0;
+		SP = userSP;
+		ireturn;
+	endif;
+	
+	open_file_entry = [resource_table + 2*fileDesc + 1];
+	inode_index = [OPEN_FILE_TABLE + 4*open_file_entry];
+
+	// ACQUIRE INODE IN RESOURCE MANAGER
+	backup;
+	R1 = ACQUIRE_INODE;
+	R2 = curr_pid;
+	R3 = inode_index;
+	call MOD_0;
+
+	if(R0 == -1) then
+		restore;
+		[retAddr] = -1;
+		[process_table+9] = 0;
+		SP = userSP;
+		ireturn;	
+	endif;	
+	restore;
+
+	lseek = [OPEN_FILE_TABLE + 4*open_file_entry + 2];
+	alias physicalAddr R10;
+	alias open_file_table R11;
+	open_file_table = OPEN_FILE_TABLE + 4*open_file_entry;
+	physicalAddr = [PTBR+2*((readAddr)/512)]*512 + (readAddr)%512;
+
+	if(inode_index == INODE_ROOT) then
+		if(lseek == 480) then
+			backup;
+			R1 = RELEASE_INODE;
+			R2 = curr_pid;
+			R3 = inode_index;
+			call MOD_0;
+			restore;
+			[retAddr] = -2;
+			[process_table+9] = 0;
+			SP = userSP;
+			ireturn;
+		endif;
+
+		[physicalAddr] = [ROOT_FILE  + lseek];
+		[open_file_table+2] = [open_file_table+2] + 1;
+	else
+		if(lseek == [INODE_TABLE + inode_index*16 + 2]) then
+			backup;
+                        R1 = RELEASE_INODE;
+                        R2 = curr_pid;
+                        R3 = inode_index;
+                        call MOD_0;
+                        restore;
+                        [retAddr] = -2;
+                        [process_table+9] = 0;
+                        SP = userSP;
+                        ireturn;
+		endif;
+
+		alias block_num R12;
+		alias offset R13;
+		block_num = [INODE_TABLE + 16*inode_index + 8 + (lseek/512)];
+		offset = lseek%512;
+
+		// READ DATA FROM FILE BUFFER BY CALLING BUFFERED READ
+		backup;
+		R1 = BUFFERED_READ;
+		R2 = block_num;
+		R3 = offset;
+		R4 = physicalAddr;
+		call MOD_3;
+		restore;
+
+		// INCREMENT LSEEK VALUE
+		[open_file_table + 2] = [open_file_table + 2] + 1;
+	endif;
+
+	// RELEASE INODE
+
+	backup;
+	R1 = RELEASE_INODE;
+	R2 = curr_pid;
+	R3 = inode_index;
+	call MOD_0;
+	restore;
+
+endif;
+	
+	[retAddr] = 0;
+	[process_table+9] = 0;
+	SP = [process_table+13];
+
+	ireturn;
+	

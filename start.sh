@@ -21,6 +21,6 @@ echo "Compiled expl programs"
 cd ..
 cd xfs-interface/
 ./xfs-interface fdisk
-./xfs-interface run run_C.txt
+./xfs-interface run run_c.txt
 cd $curr
 echo "All files loaded."

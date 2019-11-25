@@ -1,0 +1,94 @@
+// SYSTEM CALL NUMBER FOR SEMGET = 17
+// SYSTEM CALL NUMBER FOR SEMRELEASE = 18
+
+[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13] = SP;
+alias userSP R1;
+userSP = SP;
+
+SP = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512-1;
+
+alias syscallno R2;
+syscallno = [[PTBR+2*((userSP-5)/512)]*512 + (userSP-5)%512];
+
+//--------------------------------------------SEMGET-----------------------------------------------------
+
+if(syscallno == 17) then
+	[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9] = 17;
+	alias free_entry R13;
+	free_entry = -1;
+	
+	alias i R14;
+	i = 496;
+	while(i < 512) do
+		if([[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512 + i] == -1) then
+			free_entry = i;
+			break;
+		endif;	
+	i = i+2;
+	endwhile;
+	
+	if(free_entry == -1) then
+		[[PTBR+2*((userSP-1)/512)]*512 + (userSP-1)%512] = -1;
+		SP = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13];
+		[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9] = 0;
+		ireturn;
+	endif;
+
+	backup;
+	R1 = ACQUIRE_SEMAPHORE;
+	R2 = [SYSTEM_STATUS_TABLE+1];
+	call MOD_0;
+
+	if(R0 == -1) then
+		restore;
+		[[PTBR+2*((userSP-1)/512)]*512 + (userSP-1)%512] = -2;
+		SP = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13];
+                [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9] = 0;
+                ireturn;
+
+	else
+		backup;
+		print R0;
+		restore;
+
+		[[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512+free_entry] = 1;
+		[[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512+free_entry+1] = R0;
+		restore;
+
+		alias semdesc R15;
+		semdesc = (free_entry - 496)/2;
+	
+		[[PTBR+2*((userSP-1)/512)]*512 + (userSP-1)%512] = semdesc;
+		SP = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13];
+		[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9] = 0;
+		ireturn;
+	endif;	
+endif;
+
+//-------------------------------------------SEMRELEASE--------------------------------------------------
+
+if(syscallno == 18) then
+	[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9] = 18;
+	alias semdesc R6;
+	semdesc = [[PTBR+2*((userSP-4)/512)]*512 + (userSP-4)%512];
+	if(semdesc > 7 || semdesc < 0 || [[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512+(2*semdesc+496)] != 1) then
+		[[PTBR+2*((userSP-1)/512)]*512 + (userSP-1)%512] = -1;
+		SP = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13];
+		[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9] = 0;
+		ireturn;
+	endif;
+
+	backup;
+	R1 = RELEASE_SEMAPHORE;
+	R2 = [SYSTEM_STATUS_TABLE+1];
+	R3 = [[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512+ 496+2*semdesc+1];
+	call MOD_0;
+	restore;
+
+	[[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512+ 496+2*semdesc] = -1;
+	
+	[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9] = 0;
+	[[PTBR+2*((userSP-1)/512)]*512 + (userSP-1)%512] = 0;
+	SP = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13];
+	ireturn;
+endif;

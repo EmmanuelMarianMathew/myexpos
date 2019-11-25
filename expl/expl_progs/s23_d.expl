@@ -1,0 +1,41 @@
+int main() 
+{
+	decl
+		int i, temp;
+		str s, per, fname;
+	enddecl
+
+	begin
+		s = "Enter file name";
+		temp = exposcall("Write", -2, s);
+		temp = exposcall("Read", -1, fname);
+		s = "Enter permission";
+		temp = exposcall("Write", -2, s);
+		temp = exposcall("Read", -1, per);
+		
+		temp = exposcall("Create", fname, per);
+	
+		if(temp == 0) then
+			write("File Created");
+		endif;
+
+		s = "Enter file to be deleted";
+		temp = exposcall("Write", -2, s);
+		temp = exposcall("Read", -1, fname);
+		temp = exposcall("Delete", fname);
+
+		if(temp == 0) then
+			write("file deleted");
+		endif;		
+
+		if(temp == -1) then
+			write("per_denied");
+		endif;
+
+		if(temp == -2) then
+			write("file open");
+		endif;
+		
+		return 0;
+	end
+}

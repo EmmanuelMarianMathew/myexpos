@@ -4,6 +4,8 @@ breakpoint;
 
 SP = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512-1;
 
+//To get a new PID for the child process, invoke the Get Pcb Entry function from the process manager module.
+
 R1 = GET_PCB_ENTRY;
 call MOD_1;
 

@@ -7,7 +7,6 @@ PTBR = PAGE_TABLE_BASE;
 call BOOT_MODULE;
 
 //------------------------------------SET THE PAGE TABLE FOR IDLE PROCESS--------------------------------
-------
 
 // LIBRARY
 [PTBR+0] = 63;
